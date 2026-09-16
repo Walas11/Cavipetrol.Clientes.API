@@ -1,2 +1,194 @@
 # Cavipetrol.Clientes.API
 Prueba técnica - Desarrollador Fullstack Cavipetrol
+
+
+-- =====================================
+-- Modelado y creación de tablas (20 pts)
+-- =====================================
+
+CREATE DATABASE EmpresaDB;
+GO
+
+USE EmpresaDB;
+GO
+
+-- =========================
+-- Departamentos
+-- =========================
+CREATE TABLE Departamentos (
+    DepartamentoID INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre VARCHAR(100) NOT NULL,
+    Ubicacion VARCHAR(100) NULL
+);
+GO
+
+-- =========================
+-- Empleados
+-- =========================
+CREATE TABLE Empleados (
+    EmpleadoID INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre VARCHAR(100) NOT NULL,
+    Apellido VARCHAR(100) NOT NULL,
+    FechaContratacion DATE NOT NULL,
+    Salario DECIMAL(10,2) NOT NULL,
+    DepartamentoID INT NOT NULL,
+    CONSTRAINT FK_Empleados_Departamentos
+        FOREIGN KEY (DepartamentoID) REFERENCES Departamentos(DepartamentoID)
+);
+GO
+
+-- =========================
+-- Proyectos
+-- =========================
+CREATE TABLE Proyectos (
+    ProyectoID INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre VARCHAR(150) NOT NULL,
+    FechaInicio DATE NOT NULL,
+    FechaFin DATE NULL,
+    Presupuesto DECIMAL(12,2) NOT NULL
+);
+GO
+
+-- =========================
+-- EmpleadoProyecto
+-- =========================
+CREATE TABLE EmpleadoProyecto (
+    EmpleadoID INT NOT NULL,
+    ProyectoID INT NOT NULL,
+    RolEnProyecto VARCHAR(50) NULL,
+    FechaAsignacion DATE NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT PK_EmpleadoProyecto PRIMARY KEY (EmpleadoID, ProyectoID),
+    CONSTRAINT FK_EmpleadoProyecto_Empleados
+        FOREIGN KEY (EmpleadoID) REFERENCES Empleados(EmpleadoID),
+    CONSTRAINT FK_EmpleadoProyecto_Proyectos
+        FOREIGN KEY (ProyectoID) REFERENCES Proyectos(ProyectoID)
+);
+GO
+
+-- =========================
+-- INSERTS: Departamentos
+-- =========================
+INSERT INTO Departamentos (Nombre, Ubicacion) VALUES
+('Tecnología', 'Bogotá'),
+('Recursos Humanos', 'Medellín'),
+('Ventas', 'Cali'),
+('Finanzas', 'Bogotá'),
+('Marketing', 'Barranquilla');
+GO
+
+-- =========================
+-- INSERTS: Empleados
+-- =========================
+INSERT INTO Empleados (Nombre, Apellido, FechaContratacion, Salario, DepartamentoID) VALUES
+('Carlos', 'Ramírez', '2021-03-15', 4500000.00, 1),
+('Laura', 'Gómez', '2020-07-01', 5200000.00, 1),
+('Andrés', 'Torres', '2019-11-20', 3800000.00, 2),
+('Mariana', 'López', '2022-01-10', 4100000.00, 3),
+('Sofía', 'Pérez', '2018-05-05', 6000000.00, 4);
+GO
+
+-- =========================
+-- INSERTS: Proyectos
+-- =========================
+INSERT INTO Proyectos (Nombre, FechaInicio, FechaFin, Presupuesto) VALUES
+('Migración a la nube', '2023-01-01', '2023-12-31', 150000000.00),
+('Rediseño de marca', '2023-03-01', NULL, 45000000.00),
+('Sistema de nómina', '2022-06-01', '2023-02-28', 80000000.00),
+('Portal de clientes', '2023-05-01', NULL, 60000000.00),
+('Auditoría financiera 2024', '2024-01-15', '2024-04-15', 30000000.00);
+GO
+
+-- =========================
+-- INSERTS: EmpleadoProyecto
+-- =========================
+INSERT INTO EmpleadoProyecto (EmpleadoID, ProyectoID, RolEnProyecto, FechaAsignacion) VALUES
+(1, 1, 'Desarrollador', '2023-01-05'),
+(2, 1, 'Líder Técnico', '2023-01-05'),
+(2, 3, 'Analista', '2022-06-10'),
+(3, 3, 'Especialista RRHH', '2022-06-10'),
+(4, 2, 'Diseñadora', '2023-03-05'),
+(4, 4, 'Analista Frontend', '2023-05-10'),
+(5, 5, 'Auditora', '2024-01-20');
+GO
+
+
+
+
+
+
+-- =========================
+-- Consultas SQL (30 pts)
+-- =========================
+
+SELECT * FROM Empleados
+SELECT * FROM Proyectos
+SELECT * FROM Departamentos
+SELECT * FROM EmpleadoProyecto
+
+-- Listar todos los empleados con el nombre de su departamento
+
+SELECT e.Nombre, d.Nombre
+FROM Empleados e
+LEFT JOIN Departamentos d on e.DepartamentoID = d.DepartamentoID
+
+-- Mostrar los proyectos con su presupuesto y la cantidad de empleados asignados
+SELECT P.Nombre, P.Presupuesto, COUNT(EP.EmpleadoID) AS EMPLEADOS_COUNT
+FROM Proyectos P
+LEFT JOIN EmpleadoProyecto EP on P.ProyectoID = EP.ProyectoID
+GROUP BY P.ProyectoID, P.Nombre, P.Presupuesto
+
+-- Obtener el top 3 de empleados con más proyectos asignados
+SELECT TOP 3 e.Nombre, e.Apellido, COUNT(ep.ProyectoID) AS CantidadProyectos
+FROM Empleados E
+INNER JOIN EmpleadoProyecto EP ON E.EmpleadoID = EP.EmpleadoID
+GROUP BY e.EmpleadoID, e.Nombre, e.Apellido
+ORDER BY CantidadProyectos DESC;
+
+-- Listar los departamentos que no tienen empleados
+SELECT D.Nombre
+FROM Departamentos D
+LEFT JOIN Empleados E ON D.DepartamentoID = E.DepartamentoID
+WHERE E.EmpleadoID IS NULL;
+
+-- Consultar todos los empleados que participan en más de un proyecto
+SELECT e.Nombre, e.Apellido, COUNT(ep.ProyectoID) AS CantidadProyectos
+FROM Empleados E
+INNER JOIN EmpleadoProyecto EP ON E.EmpleadoID = EP.EmpleadoID
+GROUP BY e.EmpleadoID, e.Nombre, e.Apellido
+HAVING COUNT(ep.ProyectoID) > 1;
+
+
+
+-- =====================================
+-- Procedimientos y funciones (20 pts)
+-- =====================================
+
+CREATE PROCEDURE sp_buscar_empleado
+    @Nombre VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        e.EmpleadoID,
+        e.Nombre,
+        e.Apellido,
+        e.FechaContratacion,
+        e.Salario,
+        d.Nombre AS Departamento,
+        d.Ubicacion
+    FROM Empleados e
+    LEFT JOIN Departamentos d ON e.DepartamentoID = d.DepartamentoID
+    WHERE e.Nombre LIKE '%' + @Nombre + '%';
+END;
+GO
+
+
+
+
+-- =====================================
+-- Optimización y administración (20 pts)
+-- =====================================
+
+CREATE NONCLUSTERED INDEX IX_Empleados_Apellido
+ON Empleados (Apellido);
