@@ -1,0 +1,34 @@
+-- ========================= -- Base de datos -- ========================= CREATE DATABASE DBClientes; GO
+
+USE DBClientes; GO
+
+-- ========================= -- Tabla: Clientes -- ========================= CREATE TABLE Clientes ( ClienteID INT IDENTITY(1,1) PRIMARY KEY, Identificacion VARCHAR(20) NOT NULL, Nombre VARCHAR(100) NOT NULL, Apellido VARCHAR(100) NOT NULL, Email VARCHAR(150) NULL, Telefono VARCHAR(20) NULL, Direccion VARCHAR(200) NULL, FechaRegistro DATE NOT NULL DEFAULT GETDATE(), CONSTRAINT UQ_Clientes_Identificacion UNIQUE (Identificacion) ); GO
+
+-- Índice para acelerar la búsqueda por identificación (la consulta más frecuente) CREATE NONCLUSTERED INDEX IX_Clientes_Identificacion ON Clientes (Identificacion); GO
+
+-- ========================= -- INSERTS de prueba -- ========================= INSERT INTO Clientes (Identificacion, Nombre, Apellido, Email, Telefono, Direccion, FechaRegistro) VALUES ('1010101010', 'Carlos', 'Ramírez', 'carlos.ramirez@mail.com', '3001234567', 'Cra 45 #10-20, Bogotá', '2022-03-15'), ('2020202020', 'Laura', 'Gómez', 'laura.gomez@mail.com', '3009876543', 'Calle 80 #12-34, Medellín', '2021-07-10'), ('3030303030', 'Andrés', 'Torres', 'andres.torres@mail.com', '3015551234', 'Av 6 #22-11, Cali', '2023-01-05'), ('4040404040', 'Mariana', 'López', 'mariana.lopez@mail.com', '3021234567', 'Cra 9 #45-67, Barranquilla', '2020-11-20'), ('5050505050', 'Sofía', 'Pérez', 'sofia.perez@mail.com', '3037654321', 'Calle 30 #18-90, Bucaramanga', '2022-09-01'); GO
+
+-- ========================= -- SP: Obtener cliente por identificación -- ========================= CREATE PROCEDURE sp_ObtenerCliente @Identificacion VARCHAR(20) AS BEGIN SET NOCOUNT ON;
+
+SELECT
+    ClienteID,
+    Identificacion,
+    Nombre,
+    Apellido,
+    Email,
+    Telefono,
+    Direccion,
+    FechaRegistro
+FROM Clientes
+WHERE Identificacion = @Identificacion;
+END; GO
+
+USE [DBClientes] GO
+
+DECLARE @return_value int
+
+EXEC @return_value = [dbo].[sp_ObtenerCliente] @Identificacion = N'1010101010'
+
+SELECT 'Return Value' = @return_value
+
+GO
