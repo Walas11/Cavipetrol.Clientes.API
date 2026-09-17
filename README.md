@@ -1,78 +1,61 @@
 # Cavipetrol.Clientes.API
 Prueba técnica - Desarrollador Fullstack Cavipetrol
 
--- =========================
--- Base de datos
--- =========================
-CREATE DATABASE DBClientes;
-GO
+Este documento resume dónde está cada entregable de la prueba técnica de bases de datos.
 
-USE DBClientes;
-GO
+## 1. RUEBA TÉCNICA – BASE DE DATOS SQL SERVER
 
--- =========================
--- Tabla: Clientes
--- =========================
-CREATE TABLE Clientes (
-    ClienteID INT IDENTITY(1,1) PRIMARY KEY,
-    Identificacion VARCHAR(20) NOT NULL,
-    Nombre VARCHAR(100) NOT NULL,
-    Apellido VARCHAR(100) NOT NULL,
-    Email VARCHAR(150) NULL,
-    Telefono VARCHAR(20) NULL,
-    Direccion VARCHAR(200) NULL,
-    FechaRegistro DATE NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT UQ_Clientes_Identificacion UNIQUE (Identificacion)
-);
-GO
+Archivo: **`RUEBA TÉCNICA – BASE DE DATOS SQL SERVER.txt`**
 
--- Índice para acelerar la búsqueda por identificación (la consulta más frecuente)
-CREATE NONCLUSTERED INDEX IX_Clientes_Identificacion
-ON Clientes (Identificacion);
-GO
+Contiene el desarrollo completo de la prueba técnica de SQL Server, independiente de la API de Clientes:
 
--- =========================
--- INSERTS de prueba
--- =========================
-INSERT INTO Clientes (Identificacion, Nombre, Apellido, Email, Telefono, Direccion, FechaRegistro) VALUES
-('1010101010', 'Carlos', 'Ramírez', 'carlos.ramirez@mail.com', '3001234567', 'Cra 45 #10-20, Bogotá', '2022-03-15'),
-('2020202020', 'Laura', 'Gómez', 'laura.gomez@mail.com', '3009876543', 'Calle 80 #12-34, Medellín', '2021-07-10'),
-('3030303030', 'Andrés', 'Torres', 'andres.torres@mail.com', '3015551234', 'Av 6 #22-11, Cali', '2023-01-05'),
-('4040404040', 'Mariana', 'López', 'mariana.lopez@mail.com', '3021234567', 'Cra 9 #45-67, Barranquilla', '2020-11-20'),
-('5050505050', 'Sofía', 'Pérez', 'sofia.perez@mail.com', '3037654321', 'Calle 30 #18-90, Bucaramanga', '2022-09-01');
-GO
+- Creación de la base de datos `EmpresaDB`.
+- Tablas `Departamentos`, `Empleados`, `Proyectos` y la tabla intermedia `EmpleadoProyecto` (relación N:M), con llaves primarias y foráneas.
+- Registros de prueba (mínimo 5 por tabla).
+- Consultas solicitadas: empleados con su departamento, proyectos con presupuesto y cantidad de empleados asignados, top 3 empleados con más proyectos, departamentos sin empleados, empleados en más de un proyecto.
+- Procedimiento almacenado `sp_buscar_empleado` (búsqueda de empleado por nombre, con datos del departamento).
+- Función escalar `fn_total_proyectos` (total de proyectos asignados a un empleado).
+- Índice no clúster sobre `Apellido` en la tabla `Empleados`.
+- Explicación de backup y restore en SQL Server.
 
--- =========================
--- SP: Obtener cliente por identificación
--- =========================
-CREATE PROCEDURE sp_ObtenerCliente
-    @Identificacion VARCHAR(20)
-AS
-BEGIN
-    SET NOCOUNT ON;
+## Ubicación del script de base de datos
 
-    SELECT
-        ClienteID,
-        Identificacion,
-        Nombre,
-        Apellido,
-        Email,
-        Telefono,
-        Direccion,
-        FechaRegistro
-    FROM Clientes
-    WHERE Identificacion = @Identificacion;
-END;
-GO
+El script completo de la base de datos (creación de la base `DBClientes`, tabla `Clientes`, índice, datos de prueba y stored procedure) se encuentra en el archivo:
 
-USE [DBClientes]
-GO
+**`DBClientes.txt`**
 
-DECLARE	@return_value int
+Ese archivo incluye:
+- Creación de la base de datos `DBClientes`.
+- Creación de la tabla `Clientes` con sus llaves primarias y restricciones.
+- Índice no clúster sobre la columna `Identificacion` para optimizar la búsqueda.
+- Inserción de datos de prueba (5 registros).
+- Stored procedure `sp_ObtenerCliente`, usado por el endpoint `GET /api/clientes/{identificacion}` de esta API.
+- Consulta de ejemplo para probar el SP directamente en SQL Server Management Studio.
 
-EXEC	@return_value = [dbo].[sp_ObtenerCliente]
-		@Identificacion = N'1010101010'
+## Resumen de lo implementado en la API
 
-SELECT	'Return Value' = @return_value
+Este proyecto (`Cavipetrol.Clientes.API`) cumple con los requisitos de la prueba técnica de desarrollador Fullstack:
 
-GO
+- **Framework:** .NET 6 Web API.
+- **Base de datos:** SQL Server 2019 / LocalDB, consumida mediante Entity Framework Core.
+- **Arquitectura en capas:**
+  - `API` – Controladores y configuración de la aplicación (`AuthController`, `ClientesController`, Swagger, JWT).
+  - `Services` – Lógica de negocio (`AuthService`, `ClienteService`).
+  - `Repositories` – Acceso a datos con EF Core, incluyendo el `DbContext` y la invocación del stored procedure.
+  - `DTOs` – Objetos de transferencia de datos expuestos por la API.
+- **Autenticación:** JWT mediante `POST /api/auth/login`, requerido para consumir el endpoint de clientes.
+- **Documentación:** Swagger/OpenAPI, incluyendo definición del esquema de seguridad Bearer para probar el token desde la misma interfaz.
+- **Endpoint principal:**
+
+GET /api/clientes/{identificacion}
+
+  Devuelve los datos del cliente si existe, o `404 Not Found` si no se encuentra la identificación.
+
+## Cómo probar la API
+
+1. Ejecutar el script `DBClientes.txt` en SQL Server para crear la base, la tabla y el SP.
+2. Ajustar la cadena de conexión en `appsettings.json` si es necesario.
+3. Levantar el proyecto desde Visual Studio 2022.
+4. En Swagger, ejecutar `POST /api/auth/login` con las credenciales de prueba y copiar el token retornado.
+5. Hacer clic en **Authorize** e ingresar `Bearer {token}`.
+6. Ejecutar `GET /api/clientes/{identificacion}` con una identificación existente (por ejemplo, `1010101010`).
